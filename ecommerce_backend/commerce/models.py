@@ -40,3 +40,76 @@ class Product(models.Model):
 
     def __str__(self):
         return self.name
+class Cart(models.Model):
+    cart_id=models.UUIDField(primary_key=True,default=uuid.uuid4,editable=False)
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="carts")
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    def __str__(self):
+        return str(self.cart_id)
+
+class CartItem(models.Model):
+    cart_item_id=models.UUIDField(primary_key=True,default=uuid.uuid4,editable=False)
+    cart=models.ForeignKey(Cart,on_delete=models.CASCADE,related_name="items")
+    product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name="cart_items")
+    quantity=models.IntegerField()
+    class Meta:
+        unique_together = ('cart', 'product')
+    def __str__(self):
+        return f"{self.product.name}  ({self.quantity})"
+
+class Order(models.Model):
+    STATUS_CHOICES = [
+        ('pending', 'Pending'),
+        ('confirmed', 'Confirmed'),
+        ('shipped', 'Shipped'),
+        ('delivered', 'Delivered'),
+        ('canceled', 'Canceled'),
+    ]
+
+    order_id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False, db_index=True)
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="orders")
+    total_amount = models.DecimalField(max_digits=10, decimal_places=2)
+    ordered_date = models.DateTimeField(auto_now_add=True)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="pending")
+
+    def __str__(self):
+        return f"Order {self.order_id} - {self.user.username} ({self.status})"
+
+
+class OrderItem(models.Model):
+    order_item_id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False, db_index=True)
+    order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name="items")
+    product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name="order_items")
+    quantity = models.PositiveIntegerField()
+    price = models.DecimalField(max_digits=10, decimal_places=2)
+
+    def __str__(self):
+        return f"{self.product.name} x {self.quantity}"
+
+
+class Payment(models.Model):
+    PAYMENT_METHOD_CHOICES = [
+        ('credit_card', 'Credit Card'),
+        ('paypal', 'PayPal'),
+        ('stripe', 'Stripe'),
+        ('chapa', 'Chapa'),
+    ]
+    STATUS_CHOICES = [
+        ('pending', 'Pending'),
+        ('completed', 'Completed'),
+        ('failed', 'Failed'),
+    ]
+
+    payment_id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False, db_index=True)
+    order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name="payments")
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="payments")
+    amount = models.DecimalField(max_digits=10, decimal_places=2)
+    payment_date = models.DateTimeField(auto_now_add=True)
+    payment_method = models.CharField(max_length=20, choices=PAYMENT_METHOD_CHOICES)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="pending")
+
+    def __str__(self):
+        return f"Payment {self.payment_id} - {self.status}"
+
+
