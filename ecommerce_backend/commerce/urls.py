@@ -1,6 +1,17 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-from .views import UserViewSet, CategoryViewSet, ProductViewSet,CartViewSet,CartItemViewSet,RegisterView,OrderViewSet,OrderItemViewSet,PaymentViewSet
+from rest_framework_simplejwt.views import TokenObtainPairView, TokenBlacklistView
+from .views import (
+    UserViewSet, 
+    CategoryViewSet,
+    ProductViewSet,
+    CartViewSet,
+    CartItemViewSet,
+    RegisterView,
+    OrderViewSet,
+    OrderItemViewSet,
+    PaymentViewSet
+    )
 
 router = DefaultRouter()
 router.register(r'users', UserViewSet, basename='user')
@@ -13,6 +24,11 @@ router.register(r'order-items', OrderItemViewSet, basename='order-items')
 router.register(r'payments', PaymentViewSet, basename='payments')
 
 urlpatterns = [
-    path('register/', RegisterView.as_view(), name='register'),
+    # Auth endpoints
+    path("auth/register/", RegisterView.as_view(), name="register"),
+    path("auth/login/", TokenObtainPairView.as_view(), name="login"),        # Login
+    path("auth/logout/", TokenBlacklistView.as_view(), name="logout"),       # Logout
+
+    # App routes
     path('', include(router.urls)),
 ]

@@ -2,7 +2,8 @@
 from django.contrib.auth.models import AbstractUser
 from django.db import models
 import uuid
-
+from phonenumber_field.modelfields import PhoneNumberField
+# ---------------- User Model ----------------   
 class User(AbstractUser):
     ROLE_CHOICES = [
         ('admin', 'Admin'),
@@ -13,12 +14,15 @@ class User(AbstractUser):
                             db_index=True)
     email  =models.EmailField(unique=True,null=False)
     role = models.CharField(max_length=10, choices=ROLE_CHOICES, default='customer')
-    phone_number = models.CharField(max_length=20, blank=True, null=True)
+    # phone_number = models.CharField(max_length=20, blank=True, null=True)
+    phone_number = PhoneNumberField(blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
 
     def __str__(self):
         return f"{self.username} ({self.role})"
+
+# ---------------- Category Model ----------------   
 
 class Category(models.Model):
     category_id = models.UUIDField(primary_key=True,default=uuid.uuid4, editable=False)
@@ -27,6 +31,8 @@ class Category(models.Model):
 
     def __str__(self):
         return self.name
+
+# ---------------- Product Model ----------------   
 class Product(models.Model):
     product_id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     category = models.ForeignKey(Category, on_delete=models.CASCADE, related_name="products")
@@ -40,6 +46,8 @@ class Product(models.Model):
 
     def __str__(self):
         return self.name
+
+# ---------------- Cart Model ----------------
 class Cart(models.Model):
     cart_id=models.UUIDField(primary_key=True,default=uuid.uuid4,editable=False)
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="carts")
@@ -48,16 +56,18 @@ class Cart(models.Model):
     def __str__(self):
         return str(self.cart_id)
 
+# ---------------- CartItem Model ----------------
 class CartItem(models.Model):
     cart_item_id=models.UUIDField(primary_key=True,default=uuid.uuid4,editable=False)
     cart=models.ForeignKey(Cart,on_delete=models.CASCADE,related_name="items")
     product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name="cart_items")
-    quantity=models.IntegerField()
+    quantity=models.PositiveIntegerField()
     class Meta:
         unique_together = ('cart', 'product')
     def __str__(self):
         return f"{self.product.name}  ({self.quantity})"
 
+# ---------------- Order Model ----------------
 class Order(models.Model):
     STATUS_CHOICES = [
         ('pending', 'Pending'),
@@ -76,7 +86,7 @@ class Order(models.Model):
     def __str__(self):
         return f"Order {self.order_id} - {self.user.username} ({self.status})"
 
-
+# ---------------- OrderItem Model ----------------
 class OrderItem(models.Model):
     order_item_id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False, db_index=True)
     order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name="items")
@@ -87,7 +97,7 @@ class OrderItem(models.Model):
     def __str__(self):
         return f"{self.product.name} x {self.quantity}"
 
-
+# ---------------- Payment Model ----------------
 class Payment(models.Model):
     PAYMENT_METHOD_CHOICES = [
         ('credit_card', 'Credit Card'),
