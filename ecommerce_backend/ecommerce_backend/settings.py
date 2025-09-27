@@ -6,7 +6,7 @@ from pathlib import Path
 from datetime import timedelta
 import os
 from dotenv import load_dotenv
-import dj_database_url
+# import dj_database_url
 
 # Load .env for local dev
 load_dotenv()
@@ -75,15 +75,15 @@ WSGI_APPLICATION = "ecommerce_backend.wsgi.application"
 # ==========================
 # Database
 # ==========================
-if os.environ.get("DATABASE_URL"):
-    DATABASES = {
-        "default": dj_database_url.config(
-            conn_max_age=600,
-            ssl_require=True,
-        )
-    }
-else:
-    DATABASES = {
+# if os.environ.get("DATABASE_URL"):
+#     DATABASES = {
+#         "default": dj_database_url.config(
+#             conn_max_age=600,
+#             ssl_require=True,
+#         )
+#     }
+# else:
+DATABASES = {
         "default": {
             "ENGINE": "django.db.backends.postgresql",
             "NAME": os.environ.get("DB_NAME"),
