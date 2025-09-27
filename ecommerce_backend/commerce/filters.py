@@ -1,5 +1,7 @@
+#commerce/filters.py
+
 import django_filters
-from .models import Product, Order, Payment
+from .models import Product,Cart, Order, Payment
 
 
 # ---------------- Product Filter ----------------
@@ -11,6 +13,15 @@ class ProductFilter(django_filters.FilterSet):
     class Meta:
         model = Product
         fields = ["category", "name", "min_price", "max_price"]
+
+# ---------------- Order Filter ----------------
+class CartFilter(django_filters.FilterSet):
+    created_min = django_filters.DateFilter(field_name="created_at", lookup_expr="gte")
+    created_max = django_filters.DateFilter(field_name="created_at", lookup_expr="lte")
+
+    class Meta:
+        model = Cart
+        fields = ["created_min", "created_max"]
 
 
 # ---------------- Order Filter ----------------

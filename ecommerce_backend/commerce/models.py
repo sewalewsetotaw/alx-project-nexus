@@ -1,6 +1,7 @@
 # category/models.py
 from django.contrib.auth.models import AbstractUser
 from django.db import models
+from django.db.models import F
 import uuid
 from phonenumber_field.modelfields import PhoneNumberField
 # ---------------- User Model ----------------   
@@ -14,8 +15,7 @@ class User(AbstractUser):
                             db_index=True)
     email  =models.EmailField(unique=True,null=False)
     role = models.CharField(max_length=10, choices=ROLE_CHOICES, default='customer')
-    # phone_number = models.CharField(max_length=20, blank=True, null=True)
-    phone_number = PhoneNumberField(blank=True)
+    phone_number = PhoneNumberField(region="ET",blank=True,null=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
 
@@ -41,12 +41,22 @@ class Product(models.Model):
     description = models.TextField()
     price = models.DecimalField(max_digits=10, decimal_places=2)
     stock = models.PositiveIntegerField(default=0)
+    image = models.ImageField(upload_to="products/", null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
         return self.name
 
+# ---------------- Product Images ----------------
+class ProductImage(models.Model):
+    image_id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name="images")
+    image = models.ImageField(upload_to="product_images/")  # MEDIA_ROOT/product_images/
+
+    def __str__(self):
+        return f"Image for {self.product.name}"
+    
 # ---------------- Cart Model ----------------
 class Cart(models.Model):
     cart_id=models.UUIDField(primary_key=True,default=uuid.uuid4,editable=False)
@@ -79,10 +89,10 @@ class Order(models.Model):
 
     order_id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False, db_index=True)
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="orders")
-    total_amount = models.DecimalField(max_digits=10, decimal_places=2)
+    total_amount = models.DecimalField(max_digits=10, decimal_places=2,default=0)    
     ordered_date = models.DateTimeField(auto_now_add=True)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="pending")
-
+    
     def __str__(self):
         return f"Order {self.order_id} - {self.user.username} ({self.status})"
 
@@ -113,12 +123,16 @@ class Payment(models.Model):
 
     payment_id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False, db_index=True)
     order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name="payments")
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="payments")
+    # user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="payments")
     amount = models.DecimalField(max_digits=10, decimal_places=2)
     payment_date = models.DateTimeField(auto_now_add=True)
     payment_method = models.CharField(max_length=20, choices=PAYMENT_METHOD_CHOICES)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="pending")
 
+    @property
+    def user(self):
+        return self.order.user
+    
     def __str__(self):
         return f"Payment {self.payment_id} - {self.status}"
 
