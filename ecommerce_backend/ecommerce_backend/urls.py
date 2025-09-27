@@ -1,4 +1,5 @@
 from django.contrib import admin
+from django.http import JsonResponse
 from django.urls import include,path
 from rest_framework_simplejwt import views as jwt_views
 from rest_framework import permissions
@@ -17,7 +18,12 @@ schema_view = get_schema_view(
    permission_classes=(permissions.AllowAny,),
    authentication_classes=[],   
 )
+
+def home(request):
+    return JsonResponse({"message": "Welcome to E-Commerce API 🚀", "docs": "/swagger/","api": "/api/"})
+
 urlpatterns = [
+    path("", home),  # root path
     path('api/token/',
          jwt_views.TokenObtainPairView.as_view(),
          name ='token_obtain_pair'),
