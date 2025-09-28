@@ -46,7 +46,7 @@ The backend is designed with **scalability, security, and performance** as top p
 ### 1. Users
 
 - `user_id`, `full_name`, `username`, `email`, `password (hashed)`, `role`
-- Roles: `customer`, `vendor`, `admin`
+- Roles: `admin`, `seller`, `customer`
 - Users can create carts, place orders,  and make payments.
 
 ### 2. Categories
@@ -56,7 +56,7 @@ The backend is designed with **scalability, security, and performance** as top p
 ### 3. Products
 
 - `product_id`, `name`, `description`, `price`, `stock`, `category_id`
-- Linked to categories, supports inventory tracking.
+- Linked to categories
 
 
 ### 4. Cart
