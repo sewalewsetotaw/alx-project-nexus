@@ -1,3 +1,5 @@
+#category.urls
+
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenBlacklistView
@@ -26,8 +28,8 @@ router.register(r'payments', PaymentViewSet, basename='payments')
 urlpatterns = [
     # Auth endpoints
     path("auth/register/", RegisterView.as_view(), name="register"),
-    path("auth/login/", TokenObtainPairView.as_view(), name="login"),        # Login
-    path("auth/logout/", TokenBlacklistView.as_view(), name="logout"),       # Logout
+    path("auth/login/", TokenObtainPairView.as_view(), name="login"),        
+    path("auth/logout/", TokenBlacklistView.as_view(), name="logout"),     
 
     # App routes
     path('', include(router.urls)),

@@ -1,8 +1,8 @@
-
-from rest_framework import viewsets, filters, generics, permissions as drf_permissions
+from rest_framework import viewsets, filters, status, generics, permissions as drf_permissions, exceptions
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework_simplejwt.authentication import JWTAuthentication
 from django.http import JsonResponse, HttpResponse
+from rest_framework.response import Response
 from .permissions import IsAdminUser, IsSellerOrReadOnly, IsOwner
 from .filters import ProductFilter, CartFilter, OrderFilter, PaymentFilter
 from .pagination import DefaultPagination
@@ -11,7 +11,6 @@ from .serializers import (
     UserSerializer,
     CategorySerializer,
     ProductSerializer,
-    # ProductListSerializer, ProductDetailSerializer,
     CartItemSerializer,
     CartSerializer,
     OrderSerializer,
@@ -21,25 +20,30 @@ from .serializers import (
 
 # ---------------- Signup (Registration) ----------------
 class RegisterView(generics.CreateAPIView):
-    """
-    Public endpoint for user registration.
-    """
     queryset = User.objects.all()
     serializer_class = UserSerializer
-    permission_classes = [drf_permissions.AllowAny]  # anyone can sign up
+    permission_classes = [drf_permissions.AllowAny]
 
 # ---------------- Users ----------------
 class UserViewSet(viewsets.ModelViewSet):
     authentication_classes = [JWTAuthentication]
-    permission_classes = [drf_permissions.IsAuthenticated,IsAdminUser]
+    permission_classes = [drf_permissions.IsAuthenticated, IsAdminUser]
 
     queryset = User.objects.all()
     serializer_class = UserSerializer
     filter_backends = [filters.OrderingFilter]
     ordering_fields = ["created_at"]
     ordering = ["created_at"]
+
     def destroy(self, request, *args, **kwargs):
-        raise drf_permissions.PermissionDenied("Deleting users is not allowed.")
+        if not getattr(request.user, "role", None) == "admin":
+            raise exceptions.PermissionDenied("You do not have permission to delete users.")
+        instance = self.get_object()
+        self.perform_destroy(instance)
+        return Response(
+            {"detail": f"User '{instance.username}' deleted successfully."},
+            status=status.HTTP_200_OK
+        )
 
 # ---------------- Categories ----------------
 class CategoryViewSet(viewsets.ModelViewSet):
@@ -49,54 +53,68 @@ class CategoryViewSet(viewsets.ModelViewSet):
     queryset = Category.objects.all()
     serializer_class = CategorySerializer
 
+    def destroy(self, request, *args, **kwargs):
+        instance = self.get_object()
+        name = instance.name
+        self.perform_destroy(instance)
+        return Response(
+            {"message": f"Category '{name}' deleted successfully"},
+            status=status.HTTP_200_OK
+        )
 
 # ---------------- Products ----------------
 class ProductViewSet(viewsets.ModelViewSet):
     authentication_classes = [JWTAuthentication]
     permission_classes = [drf_permissions.IsAuthenticated, IsSellerOrReadOnly]
-    pagination_class=DefaultPagination
-    
+    pagination_class = DefaultPagination
+
     queryset = Product.objects.all()
     serializer_class = ProductSerializer
-
     filter_backends = [DjangoFilterBackend, filters.OrderingFilter]
     filterset_class = ProductFilter
     ordering_fields = ["price", "created_at"]
     ordering = ["created_at"]
-    # def get_serializer_class(self):
-    #     if self.action == "list":
-    #         return ProductListSerializer
-    #     return ProductDetailSerializer
+
     def perform_create(self, serializer):
         serializer.save(seller=self.request.user)
 
+    def destroy(self, request, *args, **kwargs):
+        instance = self.get_object()
+        self.perform_destroy(instance)
+        return Response(
+            {"message": f"Product '{instance.name}' deleted successfully"},
+            status=status.HTTP_200_OK
+        )
 
 # ---------------- Cart ----------------
 class CartViewSet(viewsets.ModelViewSet):
     authentication_classes = [JWTAuthentication]
-    permission_classes = [drf_permissions.IsAuthenticated,IsOwner]
+    permission_classes = [drf_permissions.IsAuthenticated, IsOwner]
     serializer_class = CartSerializer
-
     filter_backends = [DjangoFilterBackend, filters.OrderingFilter]
     filterset_class = CartFilter
     ordering_fields = ["created_at"]
     ordering = ["-created_at"]
-    def perform_create(self, serializer):
-        # Auto assign logged-in user to cart
-        serializer.save(user=self.request.user)
+
     def get_queryset(self):
         user = self.request.user
         qs = Cart.objects.select_related("user").prefetch_related("items__product")
-        # Skip when swagger_fake_view or user not authenticated
         if getattr(self, "swagger_fake_view", False) or not user.is_authenticated:
             return qs.none()
         if user.is_superuser or getattr(user, "role", None) == "admin":
-            return qs  # admin sees all carts
-        return qs.filter(user=user) 
-    
+            return qs
+        return qs.filter(user=user)
+
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
 
+    def destroy(self, request, *args, **kwargs):
+        instance = self.get_object()
+        self.perform_destroy(instance)
+        return Response(
+            {"message": f"Cart {instance.cart_id} deleted successfully"},
+            status=status.HTTP_200_OK
+        )
 
 # ---------------- Cart Items ----------------
 class CartItemViewSet(viewsets.ModelViewSet):
@@ -105,45 +123,49 @@ class CartItemViewSet(viewsets.ModelViewSet):
     serializer_class = CartItemSerializer
 
     def get_queryset(self):
-        user=self.request.user
-        qs=CartItem.objects.select_related("cart", "product")
-        # Skip when swagger_fake_view or user not authenticated
+        user = self.request.user
+        qs = CartItem.objects.select_related("cart", "product")
         if getattr(self, "swagger_fake_view", False) or not user.is_authenticated:
             return qs.none()
         if user.is_superuser or getattr(user, "role", None) == "admin":
-            return qs  # admin sees all cart items
-        return qs.filter(cart__user=user) 
-        # return (
-        #     CartItem.objects
-        #     .filter(cart__user=self.request.user)
-        #     .select_related("cart", "product")
-        # )
-    def perform_create(self, serializer):
-        serializer.save()
+            return qs
+        return qs.filter(cart__user=user)
+
+    def destroy(self, request, *args, **kwargs):
+        instance = self.get_object()
+        product_name = instance.product.name
+        self.perform_destroy(instance)
+        return Response(
+            {"message": f"CartItem for '{product_name}' deleted successfully"},
+            status=status.HTTP_200_OK
+        )
 
 # ---------------- Orders ----------------
 class OrderViewSet(viewsets.ModelViewSet):
     authentication_classes = [JWTAuthentication]
     permission_classes = [drf_permissions.IsAuthenticated, IsOwner]
     serializer_class = OrderSerializer
-
     filter_backends = [DjangoFilterBackend, filters.OrderingFilter]
     filterset_class = OrderFilter
     ordering_fields = ["ordered_date", "total_amount"]
     ordering = ["-ordered_date"]
-    
-    def perform_create(self, serializer):
-        serializer.save()
+
     def get_queryset(self):
-        user=self.request.user
-        qs=Order.objects.select_related("user").prefetch_related("items__product")
-        # Skip when swagger_fake_view or user not authenticated
+        user = self.request.user
+        qs = Order.objects.select_related("user").prefetch_related("items__product")
         if getattr(self, "swagger_fake_view", False) or not user.is_authenticated:
             return qs.none()
         if user.is_superuser or getattr(user, "role", None) == "admin":
-            return qs  # admin sees all oders
+            return qs
         return qs.filter(user=user)
 
+    def destroy(self, request, *args, **kwargs):
+        instance = self.get_object()
+        self.perform_destroy(instance)
+        return Response(
+            {"message": f"Order {instance.id} deleted successfully"},
+            status=status.HTTP_200_OK
+        )
 
 # ---------------- Order Items ----------------
 class OrderItemViewSet(viewsets.ModelViewSet):
@@ -152,41 +174,52 @@ class OrderItemViewSet(viewsets.ModelViewSet):
     serializer_class = OrderItemSerializer
 
     def get_queryset(self):
-        user=self.request.user
-        qs=OrderItem.objects.select_related("order", "product")
-        # Skip when swagger_fake_view or user not authenticated
-        if getattr(self, "swagger_fake_view", False) or not user.is_authenticated:
-            return qs.none()
-        if user.is_superuser or getattr(user, "role", None) == "admin":
-            return qs  # admin sees all oders
-        return qs.filter(order__user=user)
-    
-# ---------------- Payments ----------------
-class PaymentViewSet(viewsets.ModelViewSet):
-    authentication_classes = [JWTAuthentication]
-    permission_classes = [drf_permissions.IsAuthenticated, IsOwner]
-    serializer_class = PaymentSerializer
-
-    filter_backends = [DjangoFilterBackend, filters.OrderingFilter]
-    filterset_class = PaymentFilter
-    ordering_fields = ["payment_date", "amount"]
-    ordering = ["-payment_date"]
-
-    def perform_create(self, serializer):
-
-        order = serializer.validated_data["order"]
-        serializer.save(order=order)
-
-    def get_queryset(self):
         user = self.request.user
-        qs = Payment.objects.select_related("order__user")
-        # Skip when swagger_fake_view or user not authenticated
+        qs = OrderItem.objects.select_related("order", "product")
         if getattr(self, "swagger_fake_view", False) or not user.is_authenticated:
             return qs.none()
         if user.is_superuser or getattr(user, "role", None) == "admin":
             return qs
         return qs.filter(order__user=user)
-    
+
+    def destroy(self, request, *args, **kwargs):
+        instance = self.get_object()
+        product_name = instance.product.name
+        self.perform_destroy(instance)
+        return Response(
+            {"message": f"OrderItem for '{product_name}' deleted successfully"},
+            status=status.HTTP_200_OK
+        )
+
+# ---------------- Payments ----------------
+class PaymentViewSet(viewsets.ModelViewSet):
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [drf_permissions.IsAuthenticated, IsOwner]
+    serializer_class = PaymentSerializer
+    filter_backends = [DjangoFilterBackend, filters.OrderingFilter]
+    filterset_class = PaymentFilter
+    ordering_fields = ["payment_date", "amount"]
+    ordering = ["-payment_date"]
+
+    def get_queryset(self):
+        user = self.request.user
+        qs = Payment.objects.select_related("order__user")
+        if getattr(self, "swagger_fake_view", False) or not user.is_authenticated:
+            return qs.none()
+        if user.is_superuser or getattr(user, "role", None) == "admin":
+            return qs
+        return qs.filter(order__user=user)
+
+    def destroy(self, request, *args, **kwargs):
+        instance = self.get_object()
+        amount = instance.amount
+        self.perform_destroy(instance)
+        return Response(
+            {"message": f"Payment of {amount} deleted successfully"},
+            status=status.HTTP_200_OK
+        )
+
+
 def home(request):
     """Project Nexus Dashboard """
     data = {

@@ -8,11 +8,16 @@ Content-Type: application/json
 
 ###
 
-GET http://127.0.0.1:8000/api/categories/ HTTP/1.1
-
+GET http://127.0.0.1:8000/api/orders/ HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiZXhwIjoxNzU5MDkyMTg1LCJpYXQiOjE3NTkwODg1ODUsImp0aSI6ImU2N2JlNDc0MjBlMzRmODA5Yjk3YTFmZTkwNGVkOGE2IiwidXNlcl9pZCI6IjY1YjMyYWYzLTIwNWYtNGVlZS1iNThjLTY1YTlmOGNhZjU0ZCJ9.uJhNrxndhzyaqelfJUTgcMWmHyIVvjaZEEK6Uy7cvMY
 
 ###
+GET http://127.0.0.1:8000/api/users/65b32af3-205f-4eee-b58c-65a9f8caf54d/ HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiZXhwIjoxNzU5MDc3NjY3LCJpYXQiOjE3NTkwNzQwNjcsImp0aSI6ImU4ZmUyMmEyNjM3NjQ0NDQ5YzQ2NWQzYmE5YjY4OGU0IiwidXNlcl9pZCI6IjY1YjMyYWYzLTIwNWYtNGVlZS1iNThjLTY1YTlmOGNhZjU0ZCJ9.HvE-EauGjMOKS_liLKEX9nacwFB6qQutVCdcTY2_eFU
 
+###
 POST http://127.0.0.1:8000/api/products/ HTTP/1.1
 Content-Type: application/json
 Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiZXhwIjoxNzU4NzY3MzY2LCJpYXQiOjE3NTg3NjM3NjYsImp0aSI6ImQwYjUyYmY0OTA0MDRiZTViZTNhZmRkMTA4MjY4NjFiIiwidXNlcl9pZCI6IjY1YjMyYWYzLTIwNWYtNGVlZS1iNThjLTY1YTlmOGNhZjU0ZCJ9.NM4lm7bW_QqOjRc0WRiqVoqDBnj6RQAC-5A0gnjtXQI

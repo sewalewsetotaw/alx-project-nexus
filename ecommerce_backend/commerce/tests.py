@@ -25,7 +25,7 @@ class UserTests(TestCase):
 
     def test_login(self):
         response = self.client.post("/api/auth/login/", {
-            "username": "testuser",
+            "username": "sewalew.setotaw",
             "password": "pass1234"
         })
         print("🔍 Login Response:", response.data)
@@ -73,7 +73,7 @@ class CartTests(TestCase):
         cart_id = cart_response.data["cart_id"]
 
         item_response = self.client.post("/api/cart-items/", {
-            "cart": cart_id,
+            "cart_id": cart_id,
             "product_id": str(self.product.product_id),
             "quantity": 2
         })

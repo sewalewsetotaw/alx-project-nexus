@@ -1,6 +1,7 @@
 # category/serializers.py
 from rest_framework import serializers
 from .models import User,Category,Product,ProductImage,Cart,CartItem,Order,OrderItem,Payment
+from django.contrib.auth.password_validation import validate_password
 
 # ---------------- User ----------------
 class UserSerializer(serializers.ModelSerializer):
@@ -9,9 +10,13 @@ class UserSerializer(serializers.ModelSerializer):
     class Meta: 
         model = User
         fields = ['user_id', 'username', 'first_name', 'last_name', 'email',
-                  'phone_number', 'role', 'password', 'created_at']
-        read_only_fields = ['user_id', 'created_at']
+                  'phone_number', 'password','role',  'created_at']
+        read_only_fields = ['user_id','role', 'created_at']
 
+    def validate_password(self, value):
+        validate_password(value)   
+        return value    
+    
     def create(self, validated_data):
         password = validated_data.pop('password')
         user = User(**validated_data)
@@ -34,22 +39,11 @@ class UserSerializer(serializers.ModelSerializer):
 
         instance.save()
         return instance
-    def validate_email(self, value):
-        if User.objects.filter(email=value).exists():
-            raise serializers.ValidationError("Email already registered.")
-        return value
-
-    def validate_username(self, value):
-        if User.objects.filter(username=value).exists():
-            raise serializers.ValidationError("Username already taken.")
-        return value
-
-  # ---------------- Category ---------------- 
+    
 class CategorySerializer(serializers.ModelSerializer):
-    products=serializers.PrimaryKeyRelatedField(many=True,read_only=True)
     class Meta:
         model = Category
-        fields = ['category_id', 'name', 'description', 'products']
+        fields = ['category_id', 'name', 'description']
 
  # ---------------- Product Images ----------------
 class ProductImageSerializer(serializers.ModelSerializer):
@@ -59,21 +53,18 @@ class ProductImageSerializer(serializers.ModelSerializer):
 
  # ---------------- Product ----------------   
 class ProductSerializer(serializers.ModelSerializer):
-    seller = UserSerializer(read_only=True)
-    category = CategorySerializer(read_only=True)
-    images = ProductImageSerializer(many=True, read_only=True)
-    category_id = serializers.PrimaryKeyRelatedField(
-        queryset=Category.objects.all(), source='category', write_only=True
-    )
-
+    images = serializers.ListSerializer(child=serializers.ImageField(), read_only=True)
+    category_id = serializers.UUIDField()
+    category = serializers.CharField(source="category.name", read_only=True)
+    seller_id = serializers.UUIDField(source="seller.user_id", read_only=True)
     class Meta:
         model = Product
         fields = [
             "product_id", "name", "description", "price", "stock",
             "created_at", "updated_at",
-            "seller", "category", "images", "category_id"
+            "seller_id","category_id", "category", "images"
         ]
-        read_only_fields = ["product_id", "created_at", "updated_at", "seller", "category", "images"]
+        read_only_fields = ["product_id", "created_at", "updated_at", "seller_id", "category", "images"]
 
     def create(self, validated_data):
         validated_data['seller'] = self.context['request'].user
@@ -81,50 +72,99 @@ class ProductSerializer(serializers.ModelSerializer):
 
  # ---------------- CartItem ----------------
 class CartItemSerializer(serializers.ModelSerializer):
-    product = ProductSerializer(read_only=True)
-    product_id = serializers.PrimaryKeyRelatedField(
-        queryset=Product.objects.all(), source="product", write_only=True
-    )
+    product = serializers.CharField(source="product.name", read_only=True)
+    cart_id = serializers.UUIDField()
+    product_id = serializers.UUIDField()
 
     class Meta:
         model = CartItem
-        fields = ['cart_item_id', 'cart', 'product', 'product_id', 'quantity']
+        fields = ["cart_item_id", "cart_id", "product_id", "product", "quantity"]
 
+    def create(self, validated_data):
+        cart_id = validated_data.pop("cart_id")
+        product_id = validated_data.pop("product_id")
+        quantity = validated_data.pop("quantity", 1)
+
+        # Get cart
+        try:
+            cart = Cart.objects.get(cart_id=cart_id)
+        except Cart.DoesNotExist:
+            raise serializers.ValidationError({"cart_id": "Invalid cart id."})
+
+        # Get product
+        try:
+            product = Product.objects.get(product_id=product_id)
+        except Product.DoesNotExist:
+            raise serializers.ValidationError({"product_id": "Invalid product id."})
+
+        # Check if item already exists in cart
+        cart_item, created = CartItem.objects.get_or_create(
+            cart=cart, product=product,
+            defaults={"quantity": quantity}
+        )
+
+        if not created:
+            # Update quantity instead of creating duplicate
+            cart_item.quantity += quantity
+            cart_item.save()
+
+        return cart_item
+
+    
 # ---------------- Cart ----------------
 class CartSerializer(serializers.ModelSerializer):
+    user_id = serializers.UUIDField(source="user.user_id", read_only=True)
     items = CartItemSerializer(many=True, read_only=True)
-
     class Meta:
         model = Cart
-        fields = ['cart_id', 'user', 'created_at', 'items']
-        read_only_fields = ['cart_id', 'created_at', 'user']
+        fields = ['cart_id', 'user_id', 'created_at', 'items']
+        read_only_fields = ['cart_id', 'created_at', 'user_id']
 
- # ---------------- Order Item ----------------
+ # ---------------- OrderItem ----------------
 class OrderItemSerializer(serializers.ModelSerializer):
-    product = ProductSerializer(read_only=True)
+    product = serializers.CharField(source="product.name", read_only=True)
+    order_id = serializers.PrimaryKeyRelatedField(
+        queryset=Order.objects.all(),
+        source="order",
+        write_only=True
+    )
     product_id = serializers.PrimaryKeyRelatedField(
-        queryset=Product.objects.all(), source="product", write_only=True
+        queryset=Product.objects.all(),
+        source="product",
+        write_only=True
     )
 
     class Meta:
         model = OrderItem
-        fields = ['order_item_id', 'order', 'product', 'product_id', 'quantity', 'price']
-        read_only_fields = ['order_item_id', 'price', 'product']
+        fields = ['order_item_id', 'order_id', 'product_id', 'product', 'quantity', 'price']
+        read_only_fields = ['order_item_id', 'product', 'price']
+
+    def create(self, validated_data):
+        # Price is automatically set from the product
+        product = validated_data["product"]
+        validated_data["price"] = product.price
+        return super().create(validated_data)
+
+    def update(self, instance, validated_data):
+        # Only quantity is editable
+        quantity = validated_data.get("quantity")
+        if quantity is not None:
+            instance.quantity = quantity
+            instance.save()
+        return instance
+
 
 # ---------------- Order ----------------
 class OrderSerializer(serializers.ModelSerializer):
+    user_id = serializers.UUIDField(source="user.user_id", read_only=True)
     items = OrderItemSerializer(many=True, read_only=True)
     total_amount = serializers.DecimalField(max_digits=10, decimal_places=2, read_only=True)
 
     class Meta:
         model = Order
-        fields = ['order_id', 'user', 'total_amount', 'ordered_date', 'status', 'items']
-        read_only_fields = ['order_id', 'ordered_date', 'user', 'total_amount']
+        fields = ['order_id', 'user_id', 'total_amount', 'ordered_date', 'status', 'items']
+        read_only_fields = ['order_id', 'ordered_date', 'user_id', 'total_amount']
 
-    # def create(self, validated_data):
-    #     user = self.context['request'].user
-    #     order = Order.objects.create(user=user)  # total_amount default=0
-    #     return order
     def create(self, validated_data):
         user = self.context['request'].user
         order = Order.objects.create(user=user, status='pending')
@@ -139,18 +179,21 @@ class OrderSerializer(serializers.ModelSerializer):
                 )
             cart.items.all().delete()
         return order
+    
 # ---------------- Payment ----------------
 class PaymentSerializer(serializers.ModelSerializer):
-    order = OrderSerializer(read_only=True)
-    order_id = serializers.PrimaryKeyRelatedField(
-        queryset=Order.objects.all(), source="order", write_only=True
-    )
-    user = serializers.SerializerMethodField()
-
+    # order = OrderSerializer(read_only=True)
+    # order_id = serializers.PrimaryKeyRelatedField(
+    #     queryset=Order.objects.all(), source="order", write_only=True
+    # )
+    # user = serializers.SerializerMethodField()
+    order_id = serializers.UUIDField(write_only=True)
+    order = serializers.CharField(source="order.order_id", read_only=True)
+    user = serializers.CharField(source="order.user.username", read_only=True)
     class Meta:
         model = Payment
         fields = [
-            'payment_id', 'order', 'order_id', 'user', 'amount',
+            'payment_id', 'order_id', 'order', 'user', 'amount',
             'payment_date', 'payment_method', 'status'
         ]
         read_only_fields = ['payment_id', 'payment_date']

@@ -14,7 +14,7 @@ class ProductFilter(django_filters.FilterSet):
         model = Product
         fields = ["category", "name", "min_price", "max_price"]
 
-# ---------------- Order Filter ----------------
+# ---------------- Cart Filter ----------------
 class CartFilter(django_filters.FilterSet):
     created_min = django_filters.DateFilter(field_name="created_at", lookup_expr="gte")
     created_max = django_filters.DateFilter(field_name="created_at", lookup_expr="lte")
