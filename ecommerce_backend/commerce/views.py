@@ -88,6 +88,9 @@ class CartViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         user = self.request.user
         qs = Cart.objects.select_related("user").prefetch_related("items__product")
+        # Skip when swagger_fake_view or user not authenticated
+        if getattr(self, "swagger_fake_view", False) or not user.is_authenticated:
+            return qs.none()
         if user.is_superuser or getattr(user, "role", None) == "admin":
             return qs  # admin sees all carts
         return qs.filter(user=user) 
@@ -105,9 +108,12 @@ class CartItemViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         user=self.request.user
         qs=CartItem.objects.select_related("cart", "product")
+        # Skip when swagger_fake_view or user not authenticated
+        if getattr(self, "swagger_fake_view", False) or not user.is_authenticated:
+            return qs.none()
         if user.is_superuser or getattr(user, "role", None) == "admin":
             return qs  # admin sees all cart items
-        return qs.filter(user=user) 
+        return qs.filter(cart__user=user) 
         # return (
         #     CartItem.objects
         #     .filter(cart__user=self.request.user)
@@ -132,6 +138,9 @@ class OrderViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         user=self.request.user
         qs=Order.objects.select_related("user").prefetch_related("items__product")
+        # Skip when swagger_fake_view or user not authenticated
+        if getattr(self, "swagger_fake_view", False) or not user.is_authenticated:
+            return qs.none()
         if user.is_superuser or getattr(user, "role", None) == "admin":
             return qs  # admin sees all oders
         return qs.filter(user=user)
@@ -146,9 +155,12 @@ class OrderItemViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         user=self.request.user
         qs=OrderItem.objects.select_related("order", "product")
+        # Skip when swagger_fake_view or user not authenticated
+        if getattr(self, "swagger_fake_view", False) or not user.is_authenticated:
+            return qs.none()
         if user.is_superuser or getattr(user, "role", None) == "admin":
             return qs  # admin sees all oders
-        return qs.filter(user=user)
+        return qs.filter(order__user=user)
     
 # ---------------- Payments ----------------
 class PaymentViewSet(viewsets.ModelViewSet):
@@ -162,13 +174,16 @@ class PaymentViewSet(viewsets.ModelViewSet):
     ordering = ["-payment_date"]
 
     def perform_create(self, serializer):
-        # Payment has no direct user field, use order.user
+
         order = serializer.validated_data["order"]
         serializer.save(order=order)
 
     def get_queryset(self):
         user = self.request.user
         qs = Payment.objects.select_related("order__user")
+        # Skip when swagger_fake_view or user not authenticated
+        if getattr(self, "swagger_fake_view", False) or not user.is_authenticated:
+            return qs.none()
         if user.is_superuser or getattr(user, "role", None) == "admin":
             return qs
         return qs.filter(order__user=user)
