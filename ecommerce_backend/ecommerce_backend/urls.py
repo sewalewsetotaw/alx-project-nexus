@@ -7,6 +7,7 @@ from drf_yasg.views import get_schema_view
 from drf_yasg import openapi 
 from django.conf import settings
 from django.conf.urls.static import static
+from commerce.views import home 
 schema_view = get_schema_view(
    openapi.Info(
       title="E-Commerce App API",
@@ -21,11 +22,11 @@ schema_view = get_schema_view(
    authentication_classes=[],   
 )
 
-def home(request):
-    return JsonResponse({"message": "Welcome to E-Commerce API 🚀", "docs": "/swagger/","api": "/api/"})
+# def home(request):
+#     return JsonResponse({"message": "Welcome to E-Commerce API 🚀", "docs": "/swagger/","api": "/api/"})
 
 urlpatterns = [
-    path("", home),  # root path
+    path("", home, name="home"),  # root path
     path('api/token/',
          jwt_views.TokenObtainPairView.as_view(),
          name ='token_obtain_pair'),

@@ -2,7 +2,7 @@
 from rest_framework import viewsets, filters, generics, permissions as drf_permissions
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework_simplejwt.authentication import JWTAuthentication
-
+from django.http import JsonResponse, HttpResponse
 from .permissions import IsAdminUser, IsSellerOrReadOnly, IsOwner
 from .filters import ProductFilter, CartFilter, OrderFilter, PaymentFilter
 from .pagination import DefaultPagination
@@ -186,5 +186,104 @@ class PaymentViewSet(viewsets.ModelViewSet):
         if user.is_superuser or getattr(user, "role", None) == "admin":
             return qs
         return qs.filter(order__user=user)
+    
+def home(request):
+    """Project Nexus Dashboard """
+    data = {
+        "app_name": "Project Nexus 🚀 - ProDev Backend",
+        "status": "Running ✅",
+        "description": "Elevate your backend skills and showcase your work with Project Nexus.",
+        "developer": "Sewalew Setotaw",  
+        "links": {
+            "API Root": "/api/",
+            "Swagger Docs": "/swagger/",
+            "Redoc Docs": "/redoc/",
+            "Admin Panel": "/admin/",
+            "Obtain Token": "/api/token/",
+            "Refresh Token": "/api/token/refresh/"
+        }
+    }
 
-   
+    # JSON fallback
+    if request.headers.get('Accept') == 'application/json':
+        return JsonResponse(data)
+
+    # Generate cards for links
+    cards_html = "".join(
+        f"""
+        <div class="card">
+            <a href="{url}">{name}</a>
+        </div>
+        """ for name, url in data["links"].items()
+    )
+
+    # HTML dashboard
+    html_content = f"""
+    <html>
+        <head>
+            <title>{data['app_name']} Dashboard</title>
+            <style>
+                body {{
+                    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+                    margin: 0; padding: 0; background: #f4f6f8; color: #333;
+                }}
+                .header {{
+                    background: #1a73e8; color: #fff;
+                    text-align: center; padding: 40px 20px;
+                }}
+                .header h1 {{ margin: 0; font-size: 2.5rem; }}
+                .header p {{ margin: 5px 0; font-size: 1.1rem; }}
+                .header .developer {{ font-style: italic; margin-top: 10px; }}
+                .container {{
+                    display: grid;
+                    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+                    gap: 20px;
+                    max-width: 900px;
+                    margin: 40px auto;
+                    padding: 0 20px;
+                }}
+                .card {{
+                    background: #fff;
+                    padding: 30px;
+                    border-radius: 12px;
+                    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+                    transition: transform 0.2s, box-shadow 0.2s;
+                    text-align: center;
+                }}
+                .card:hover {{
+                    transform: translateY(-5px);
+                    box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+                }}
+                .card a {{
+                    text-decoration: none;
+                    font-size: 1.2rem;
+                    color: #1a73e8;
+                    font-weight: 600;
+                }}
+                .card a:hover {{ text-decoration: underline; }}
+                .footer {{
+                    text-align: center; padding: 30px 20px; color: #555;
+                    border-top: 1px solid #ddd;
+                    margin-top: 40px;
+                }}
+            </style>
+        </head>
+        <body>
+            <div class="header">
+                <h1>{data['app_name']}</h1>
+                <p>{data['description']}</p>
+                <p>Status: <strong>{data['status']}</strong></p>
+                <p class="developer">Developed by: {data['developer']}</p>
+            </div>
+
+            <div class="container">
+                {cards_html}
+            </div>
+
+            <div class="footer">
+                &copy; 2025 All rights reserved.
+            </div>
+        </body>
+    </html>
+    """
+    return HttpResponse(html_content)
