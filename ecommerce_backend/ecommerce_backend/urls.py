@@ -8,22 +8,44 @@ from drf_yasg import openapi
 from django.conf import settings
 from django.conf.urls.static import static
 from commerce.views import home 
-schema_view = get_schema_view(
-   openapi.Info(
-      title="E-Commerce App API",
-      default_version='v1',
-      description="E-Commerce Backend API Documentation",
-      terms_of_service="https://www.google.com/policies/terms/",
-      contact=openapi.Contact(email="contact@snippets.local"),
-      license=openapi.License(name="BSD License"),
-   ),
-   public=True,
-   permission_classes=(permissions.AllowAny,),
-   authentication_classes=[],   
-)
 
-# def home(request):
-#     return JsonResponse({"message": "Welcome to E-Commerce API 🚀", "docs": "/swagger/","api": "/api/"})
+schema_view = get_schema_view(
+    openapi.Info(
+        title="Project Nexus API 🚀 - ProDev Backend",
+        default_version='v1.0.0',
+        description="""
+        Welcome to **Project Nexus API Documentation**!
+
+        Project Nexus is part of the ProDev Backend Program, showcasing a professional e-commerce backend built with Django REST Framework.  
+
+        **Hosted Project:** [Live Demo](https://ecommerce-backend-ur2g.onrender.com)  
+        **GitHub Repository:** [View Code](https://github.com/sewalewsetotaw)  
+        **Developer Contact:** sewalews29@gmail.com  
+
+        **Key Features:**
+        - User Authentication & JWT Tokens
+        - Products & Categories Management
+        - Cart, Orders, and Payments
+        - Admin Panel & Developer Tools
+        - Fully documented REST API with Swagger & Redoc
+        - Designed for scalability and professional standards
+
+        **Developer:** Sewalew Setotaw  
+        **Status:** Production-Ready 🚀
+
+        **Usage Notes:**
+        - All endpoints require JWT authentication unless marked as public
+        - Use the `/api/token/` endpoint to obtain your token
+        - Pagination and filtering are available on most endpoints
+        """,
+        terms_of_service="https://www.google.com/policies/terms/",
+        contact=openapi.Contact(email="sewalews29@gmail.com"),
+        license=openapi.License(name="BSD License"),
+    ),
+    public=True,
+    permission_classes=(permissions.AllowAny,),
+    authentication_classes=[],  
+)
 
 urlpatterns = [
     path("", home, name="home"),  # root path
