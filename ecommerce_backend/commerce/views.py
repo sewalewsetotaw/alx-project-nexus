@@ -28,7 +28,6 @@ class RegisterView(generics.CreateAPIView):
     serializer_class = UserSerializer
     permission_classes = [drf_permissions.AllowAny]  # anyone can sign up
 
-
 # ---------------- Users ----------------
 class UserViewSet(viewsets.ModelViewSet):
     authentication_classes = [JWTAuthentication]

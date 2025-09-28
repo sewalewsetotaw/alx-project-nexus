@@ -34,7 +34,15 @@ class UserSerializer(serializers.ModelSerializer):
 
         instance.save()
         return instance
+    def validate_email(self, value):
+        if User.objects.filter(email=value).exists():
+            raise serializers.ValidationError("Email already registered.")
+        return value
 
+    def validate_username(self, value):
+        if User.objects.filter(username=value).exists():
+            raise serializers.ValidationError("Username already taken.")
+        return value
 
   # ---------------- Category ---------------- 
 class CategorySerializer(serializers.ModelSerializer):
