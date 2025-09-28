@@ -11,8 +11,7 @@ services:
     runtime: python
     buildCommand: "pip install -r ecommerce_backend/requirements.txt && python ecommerce_backend/manage.py collectstatic --noinput && python ecommerce_backend/manage.py migrate"
 
-    startCommand: "gunicorn ecommerce_backend.ecommerce_backend.asgi:application -k uvicorn.workers.UvicornWorker"
-
+    startCommand: "cd ecommerce_backend && gunicorn ecommerce_backend.asgi:application -k uvicorn.workers.UvicornWorker"
     envVars:
       - key: DATABASE_URL
         fromDatabase:
