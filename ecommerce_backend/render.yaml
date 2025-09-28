@@ -9,8 +9,10 @@ services:
     plan: free
     name: ecommerce-backend
     runtime: python
-    buildCommand: "./ecommerce_backend/build.sh"
-    startCommand: "cd ecommerce_backend && python -m gunicorn ecommerce_backend.asgi:application -k uvicorn.workers.UvicornWorker"
+    buildCommand: "pip install -r ecommerce_backend/requirements.txt && python ecommerce_backend/manage.py collectstatic --noinput && python ecommerce_backend/manage.py migrate"
+
+    startCommand: "cd ecommerce_backend && gunicorn ecommerce_backend.ecommerce_backend.asgi:application -k uvicorn.workers.UvicornWorker"
+
     envVars:
       - key: DATABASE_URL
         fromDatabase:
