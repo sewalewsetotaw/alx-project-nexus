@@ -1,12 +1,14 @@
 #!/usr/bin/env bash
-# Exit on error
 set -o errexit
 
-# Modify this line as needed for your package manager (pip, poetry, etc.)
-pip install -r requirements.txt
+# Install dependencies
+pip install -r ecommerce_backend/requirements.txt
 
-# Convert static asset files
+# Navigate into project folder for Django commands
+cd ecommerce_backend
+
+# Collect static files
 python manage.py collectstatic --no-input
 
-# Apply any outstanding database migrations
+# Apply migrations
 python manage.py migrate
