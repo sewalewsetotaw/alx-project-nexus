@@ -47,34 +47,39 @@ The backend is designed with **scalability, security, and performance** as top p
 
 - `user_id`, `full_name`, `username`, `email`, `password (hashed)`, `role`
 - Roles: `customer`, `vendor`, `admin`
-- Users can place orders, leave reviews, and make payments.
+- Users can create carts, place orders,  and make payments.
 
-### 2. Products
+### 2. Categories
+
+- `category_id`, `name`, `description`, 
+
+### 3. Products
 
 - `product_id`, `name`, `description`, `price`, `stock`, `category_id`
 - Linked to categories, supports inventory tracking.
 
-### 3. Categories
 
-- `category_id`, `name`, `description`, `parent_category_id`
-- Supports **nested categories** (hierarchical structure).
+### 4. Cart
 
-### 4. Orders
+- `cart_id`, `user_id`,  `created_at`
+- Each cart contains multiple **Cart items**.
+
+### 5. Cart Items
+
+- `cart_item_id`, `cart_id`, `product_id`, `quantity`
+### 6. Orders
 
 - `order_id`, `user_id`, `total_amount`, `status`, `created_at`
 - Each order contains multiple **order items**.
 
-### 5. Order Items
+### 7. Order Items
 
 - `order_item_id`, `order_id`, `product_id`, `quantity`, `price`
 
-### 6. Payments
+### 8. Payments
 
 - `payment_id`, `order_id`, `user_id`, `amount`, `status`, `payment_date`
 
-### 7. Reviews
-
-- `review_id`, `product_id`, `user_id`, `rating`, `comment`, `created_at`
 
 ---
 
@@ -84,8 +89,9 @@ The backend is designed with **scalability, security, and performance** as top p
 
 - Products → `/api/products/`
 - Categories → `/api/categories/`
+- Cart & Items → `/api/carts/`
 - Orders & Items → `/api/orders/`
-- Users & Auth → `/api/auth/signup`, `/api/auth/login` (JWT)
+- Users & Auth → `/api/auth/register`, `/api/auth/login` (JWT)
 
 ### 2. REST API Query Features
 
@@ -111,10 +117,7 @@ The backend is designed with **scalability, security, and performance** as top p
 
 1. **JWT Authentication** – Token-based secure sessions
 2. **Role-based Access Control (RBAC)** – Permissions for `customer`, `vendor`, `admin`
-3. **Rate Limiting** – Prevent brute-force attacks
-4. **Input Validation** – Strict data validation with DRF serializers
-5. **HTTPS/TLS** – Encrypted communication
-6. **Secure Headers** – Middleware protection (CSP, X-Frame-Options, HSTS)
+3. **Input Validation** – Strict data validation with DRF serializers
 
 ---
 
